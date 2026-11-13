@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/f01-project-structure
+      - feature/app-tsx-f01-f09
   pull_request:
     branches:
       - main
