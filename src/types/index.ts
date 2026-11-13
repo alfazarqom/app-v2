@@ -57,6 +57,31 @@ export interface Tour {
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed';
 export type PaymentStatus = 'Unpaid' | 'Pending' | 'Paid' | 'Failed' | 'Refunded';
 
+export interface Traveler {
+  id: string;
+  name: string;
+  relation: 'Self' | 'Companion' | 'Family' | 'Other';
+  nationality: string;
+  passportNumber?: string;
+}
+
+export interface Payment {
+  id: string;
+  bookingId: string;
+  amount: number;
+  currency: 'USD' | 'IDR' | 'EUR';
+  status: PaymentStatus;
+  providerTransactionId?: string;
+}
+
+export interface BookingTracking {
+  id: string;
+  bookingId: string;
+  event: string;
+  occurredAt: string;
+  completed: boolean;
+}
+
 export interface Booking {
   id: string;
   bookingCode: string;

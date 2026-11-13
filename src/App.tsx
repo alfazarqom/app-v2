@@ -30,11 +30,15 @@ import {
   QrCode,
   Home
 } from 'lucide-react';
-import { DESTINATIONS, TOURS } from './data/catalog';
-import type { Booking, CategoryType, Destination, Tour } from './types';
+import { mockCatalogRepository } from './data/catalogRepository';
+import { INITIAL_BOOKINGS, INITIAL_PROFILE, INITIAL_TRAVELERS } from './data/mockData';
+import type { Booking, CategoryType, Destination, Tour, Traveler } from './types';
 import { AppShell } from './app/AppShell';
 import { createPrototypeBookingRequest } from './features/booking/bookingService';
 import type { AppTab, ProfileSubView } from './app/routes';
+
+const DESTINATIONS = mockCatalogRepository.listDestinations();
+const TOURS = mockCatalogRepository.listTours();
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('Home');
@@ -63,44 +67,13 @@ export default function App() {
 
   // Wishlist & Bookings State
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set(['bali', 'santorini']));
-  const [bookings, setBookings] = useState<Booking[]>([
-    {
-      id: 'bk-1',
-      bookingCode: 'VYG-849201',
-      tourTitle: TOURS[0].title,
-      location: TOURS[0].location,
-      image: TOURS[0].image,
-      date: '16 Jun - 20 Jun',
-      guestsCount: 2,
-      totalAmount: 4200,
-      status: 'Confirmed',
-      paymentStatus: 'Paid',
-      paymentMethod: 'Credit Card (•••• 4921)',
-      source: 'prototype',
-      travelerName: 'Alex Morgan',
-      travelerEmail: 'alex.morgan@example.com',
-      trackingSteps: [
-        { label: 'Booking Confirmed', time: 'May 10, 10:24 AM', done: true },
-        { label: 'Chauffeur Assigned', time: 'May 12, 02:15 PM', done: true },
-        { label: 'Villa & Spa Reserved', time: 'May 14, 09:00 AM', done: true },
-        { label: 'Ready for Departure', time: 'Pending', done: false }
-      ]
-    }
-  ]);
+  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   // Profile State
   const [profileSubView, setProfileSubView] = useState<ProfileSubView>('overview');
-  const [personalInfo, setPersonalInfo] = useState({
-    fullName: 'Alex Morgan',
-    email: 'alex.morgan@example.com',
-    phone: '+1 (555) 382-9102',
-    city: 'Los Angeles, USA'
-  });
-  const [savedTravelers, setSavedTravelers] = useState([
-    { id: 'tr-1', name: 'Alex Morgan', relation: 'Self', passport: 'A8923019', nationality: 'USA' },
-    { id: 'tr-2', name: 'Taylor Swift', relation: 'Companion', passport: 'B4920182', nationality: 'USA' }
-  ]);
+  const [personalInfo, setPersonalInfo] = useState(INITIAL_PROFILE);
+  const [savedTravelers, setSavedTravelers] = useState<Traveler[]>(INITIAL_TRAVELERS);
   const [newTravelerName, setNewTravelerName] = useState('');
   const [newTravelerPassport, setNewTravelerPassport] = useState('');
   const [notifSettings, setNotifSettings] = useState({
@@ -1603,7 +1576,7 @@ export default function App() {
                                   {tr.name}
                                 </div>
                                 <div className="text-[11px] text-slate-400 font-normal">
-                                  {tr.relation} • Passport {tr.passport}
+                                  {tr.relation} • {tr.passportNumber ? 'Passport provided' : 'Passport not provided'}
                                 </div>
                               </div>
                               <span className="text-[10px] font-normal bg-[#109E6B]/10 text-[#109E6B] px-2.5 py-1 rounded-full">
@@ -1640,7 +1613,7 @@ export default function App() {
                                   id: `tr-${Date.now()}`,
                                   name: newTravelerName.trim(),
                                   relation: 'Companion',
-                                  passport: newTravelerPassport.trim() || 'C9012834',
+                                  passportNumber: newTravelerPassport.trim() || undefined,
                                   nationality: 'Indonesia',
                                 },
                               ]);
