@@ -33,6 +33,7 @@ import {
 import { DESTINATIONS, TOURS } from './data/catalog';
 import type { Booking, CategoryType, Destination, Tour } from './types';
 import { AppShell } from './app/AppShell';
+import { createPrototypeBookingRequest } from './features/booking/bookingService';
 import type { AppTab, ProfileSubView } from './app/routes';
 
 export default function App() {
@@ -71,9 +72,11 @@ export default function App() {
       image: TOURS[0].image,
       date: '16 Jun - 20 Jun',
       guestsCount: 2,
-      totalPaid: 4200,
+      totalAmount: 4200,
       status: 'Confirmed',
+      paymentStatus: 'Paid',
       paymentMethod: 'Credit Card (•••• 4921)',
+      source: 'prototype',
       travelerName: 'Alex Morgan',
       travelerEmail: 'alex.morgan@example.com',
       trackingSteps: [
@@ -154,28 +157,16 @@ export default function App() {
   };
 
   const handleConfirmBooking = (tour: Tour) => {
-    const newBooking: Booking = {
-      id: `bk-${Date.now()}`,
-      bookingCode: `VYG-${Math.floor(100000 + Math.random() * 900000)}`,
-      tourTitle: tour.title,
-      location: tour.location,
-      image: tour.image,
+    const newBooking = createPrototypeBookingRequest({
+      tour,
       date: selectedTourDate,
       guestsCount: selectedTourGuests,
-      totalPaid: tour.price * selectedTourGuests,
-      status: 'Confirmed',
-      paymentMethod: `Credit Card (${currency})`,
       travelerName: personalInfo.fullName,
       travelerEmail: personalInfo.email,
-      trackingSteps: [
-        { label: 'Booking Confirmed', time: 'Just now', done: true },
-        { label: 'Chauffeur Assigned', time: 'Pending', done: false },
-        { label: 'Hotel & Itinerary Finalized', time: 'Pending', done: false },
-        { label: 'Ready for Departure', time: 'Pending', done: false }
-      ]
-    };
+      currency,
+    });
     setBookings(prev => [newBooking, ...prev]);
-    showToast('Booking confirmed successfully!');
+    showToast('Booking request created — prototype only; payment not processed.');
     setSelectedTour(null);
     setActiveTab('Bookings');
   };
@@ -1296,7 +1287,7 @@ export default function App() {
                           <div className="mt-1.5 flex items-center justify-between text-[11px]">
                             <span className="font-normal text-slate-600">{bk.date}</span>
                             <span className="font-normal text-[#FF5733]">
-                              ${bk.totalPaid.toLocaleString()}
+                              ${bk.totalAmount.toLocaleString()}
                             </span>
                           </div>
                         </div>
@@ -1413,9 +1404,9 @@ export default function App() {
                       </span>
                     </div>
                     <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
-                      <span className="font-normal text-slate-700">Total Paid</span>
+                      <span className="font-normal text-slate-700">{selectedBooking.paymentStatus === 'Paid' ? 'Total Paid' : 'Total Amount'}</span>
                       <span className="text-sm font-normal text-[#FF5733]">
-                        ${selectedBooking.totalPaid.toLocaleString()}
+                        ${selectedBooking.totalAmount.toLocaleString()}
                       </span>
                     </div>
                   </div>
