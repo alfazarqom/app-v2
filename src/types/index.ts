@@ -56,6 +56,7 @@ export interface Tour {
 
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed';
 export type PaymentStatus = 'Unpaid' | 'Pending' | 'Paid' | 'Failed' | 'Refunded';
+export type CurrencyCode = 'USD' | 'IDR' | 'EUR';
 
 export interface Traveler {
   id: string;
@@ -91,6 +92,8 @@ export interface Booking {
   date: string;
   guestsCount: number;
   totalAmount: number;
+  currency: CurrencyCode;
+  baseAmountUsd?: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   paymentMethod: string;
