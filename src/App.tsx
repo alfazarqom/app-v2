@@ -338,10 +338,13 @@ export default function App() {
   const [savedTravelers, setSavedTravelers] = useState<Array<{ id: string; name: string; relation: string; passport: string; nationality: string }>>([]);
   const [newTravelerName, setNewTravelerName] = useState('');
   const [newTravelerPassport, setNewTravelerPassport] = useState('');
-  const [notifSettings, setNotifSettings] = useState({
-    flightAlerts: true,
-    priceDrops: true,
-    itineraryReminders: false
+  const [notifSettings, setNotifSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('voyage:notifications');
+      return saved ? JSON.parse(saved) as { flightAlerts: boolean; priceDrops: boolean; itineraryReminders: boolean } : { flightAlerts: true, priceDrops: true, itineraryReminders: false };
+    } catch {
+      return { flightAlerts: true, priceDrops: true, itineraryReminders: false };
+    }
   });
   const [currency, setCurrency] = useState<'USD' | 'IDR' | 'EUR'>(() => {
     const saved = localStorage.getItem('voyage:currency');
@@ -358,6 +361,7 @@ export default function App() {
     localStorage.setItem('voyage:wishlist', JSON.stringify(Array.from(wishlistIds)));
   }, [wishlistIds]);
   useEffect(() => { localStorage.setItem('voyage:currency', currency); }, [currency]);
+  useEffect(() => { localStorage.setItem('voyage:notifications', JSON.stringify(notifSettings)); }, [notifSettings]);
   useEffect(() => {
     const controller = new AbortController();
     fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal })
@@ -1697,7 +1701,7 @@ export default function App() {
                       </span>
                     </div>
                     <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
-                      <span className="font-normal text-slate-700">Total Paid</span>
+                      <span className="font-normal text-slate-700">{selectedBooking.status === 'Confirmed' ? 'Total Paid' : 'Total Amount'}</span>
                       <span className="text-sm font-normal text-[#FF5733]">
                         {formatPrice(selectedBooking.totalPaid)}
                       </span>
@@ -2061,13 +2065,13 @@ export default function App() {
                           </h4>
                           <div className="mt-2 flex gap-2">
                             <button
-                              onClick={() => { window.location.href = 'tel:+10000000000'; }}
+                              onClick={() => showToast('Support phone number is not configured yet.')}
                               className="flex-1 py-2.5 rounded-xl bg-[#1294F2] text-white text-xs font-normal flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               <Phone className="w-3.5 h-3.5" /> Call Support
                             </button>
                             <button
-                              onClick={() => { window.location.href = 'mailto:support@example.com?subject=Voyage%20Support'; }}
+                              onClick={() => showToast('Support email address is not configured yet.')}
                               className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-normal flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               <Mail className="w-3.5 h-3.5" /> Email Us
@@ -2101,6 +2105,9 @@ export default function App() {
                               </button>
                             ))}
                           </div>
+                          <p className="mt-2 text-[10px] text-slate-400" role="status">
+                            {currency !== 'USD' && !exchangeRates ? 'Exchange rate unavailable. Prices remain displayed in USD.' : exchangeRateUpdatedAt ? `Rates last updated: ${exchangeRateUpdatedAt}` : 'Loading exchange rates…'}
+                          </p>
                         </div>
                         <button
                           onClick={() => setShowOnboarding(true)}
