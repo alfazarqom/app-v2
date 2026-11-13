@@ -646,7 +646,7 @@ export default function App() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                         <div className="absolute top-2.5 left-2.5 bg-[#FF5733] text-white text-[10px] font-normal px-2 py-0.5 rounded-md">
-                          ${dest.price}
+                          {formatPrice(dest.price)}
                         </div>
                         <div className="absolute bottom-3 left-3 right-3 text-white">
                           <div className="text-xs font-normal">{dest.city}</div>
@@ -1900,11 +1900,11 @@ export default function App() {
                                   {tr.name}
                                 </div>
                                 <div className="text-[11px] text-slate-400 font-normal">
-                                  {tr.relation} • Passport {tr.passport}
+                                  {tr.relation} • Passport ending {tr.passport.slice(-4).padStart(tr.passport.length, '•')}
                                 </div>
                               </div>
                               <span className="text-[10px] font-normal bg-[#109E6B]/10 text-[#109E6B] px-2.5 py-1 rounded-full">
-                                Verified
+                                In this session
                               </span>
                             </div>
                           ))}
@@ -1918,6 +1918,7 @@ export default function App() {
                             type="text"
                             value={newTravelerName}
                             onChange={(e) => setNewTravelerName(e.target.value)}
+                            aria-label="Traveler full name as shown on passport"
                             placeholder="Full Name (as on passport)"
                             className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-normal"
                           />
@@ -1925,6 +1926,7 @@ export default function App() {
                             type="text"
                             value={newTravelerPassport}
                             onChange={(e) => setNewTravelerPassport(e.target.value)}
+                            aria-label="Traveler passport number"
                             placeholder="Passport Number"
                             className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-normal"
                           />
