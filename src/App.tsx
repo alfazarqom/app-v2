@@ -1,9 +1,8 @@
 // ... existing code ...
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Compass,
   MapPin,
-  Calendar,
   User,
   Heart,
   Search,
@@ -61,55 +60,58 @@ export default function App() {
   const [selectedTourGuests, setSelectedTourGuests] = useState<number>(2);
 
   // Wishlist & Bookings State
-  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set(['bali', 'santorini']));
-  const [bookings, setBookings] = useState<Booking[]>([
-    {
-      id: 'bk-1',
-      bookingCode: 'VYG-849201',
-      tourTitle: TOURS[0].title,
-      location: TOURS[0].location,
-      image: TOURS[0].image,
-      date: '16 Jun - 20 Jun',
-      guestsCount: 2,
-      totalPaid: 4200,
-      status: 'Confirmed',
-      paymentMethod: 'Credit Card (•••• 4921)',
-      travelerName: 'Alex Morgan',
-      travelerEmail: 'alex.morgan@example.com',
-      trackingSteps: [
-        { label: 'Booking Confirmed', time: 'May 10, 10:24 AM', done: true },
-        { label: 'Chauffeur Assigned', time: 'May 12, 02:15 PM', done: true },
-        { label: 'Villa & Spa Reserved', time: 'May 14, 09:00 AM', done: true },
-        { label: 'Ready for Departure', time: 'Pending', done: false }
-      ]
-    }
-  ]);
+  const [wishlistIds, setWishlistIds] = useState<Set<string>>(() => {
+    try { return new Set<string>(JSON.parse(localStorage.getItem('voyage:wishlist') ?? '[]')); }
+    catch { return new Set<string>(); }
+  });
+  // Booking data must be stored by a protected backend, not browser storage.
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   // Profile State
   const [profileSubView, setProfileSubView] = useState<ProfileSubView>('overview');
-  const [personalInfo, setPersonalInfo] = useState({
-    fullName: 'Alex Morgan',
-    email: 'alex.morgan@example.com',
-    phone: '+1 (555) 382-9102',
-    city: 'Los Angeles, USA'
-  });
-  const [savedTravelers, setSavedTravelers] = useState([
-    { id: 'tr-1', name: 'Alex Morgan', relation: 'Self', passport: 'A8923019', nationality: 'USA' },
-    { id: 'tr-2', name: 'Taylor Swift', relation: 'Companion', passport: 'B4920182', nationality: 'USA' }
-  ]);
+  const [personalInfo, setPersonalInfo] = useState({ fullName: '', email: '', phone: '', city: '' });
+  // Passport details remain session-only until protected account storage is configured.
+  const [savedTravelers, setSavedTravelers] = useState<Array<{ id: string; name: string; relation: string; passport: string; nationality: string }>>([]);
   const [newTravelerName, setNewTravelerName] = useState('');
   const [newTravelerPassport, setNewTravelerPassport] = useState('');
-  const [notifSettings, setNotifSettings] = useState({
-    flightAlerts: true,
-    priceDrops: true,
-    itineraryReminders: false
+  const [notifSettings, setNotifSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('voyage:notifications');
+      return saved ? JSON.parse(saved) as { flightAlerts: boolean; priceDrops: boolean; itineraryReminders: boolean } : { flightAlerts: true, priceDrops: true, itineraryReminders: false };
+    } catch { return { flightAlerts: true, priceDrops: true, itineraryReminders: false }; }
   });
-  const [currency, setCurrency] = useState<'USD' | 'IDR' | 'EUR'>('USD');
+  const [currency, setCurrency] = useState<'USD' | 'IDR' | 'EUR'>(() => {
+    const saved = localStorage.getItem('voyage:currency');
+    return saved === 'IDR' || saved === 'EUR' ? saved : 'USD';
+  });
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number> | null>(null);
+  const [exchangeRateUpdatedAt, setExchangeRateUpdatedAt] = useState<string | null>(null);
 
   // Toast System
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimerRef = useRef<any>(null);
+
+  useEffect(() => { localStorage.setItem('voyage:wishlist', JSON.stringify(Array.from(wishlistIds))); }, [wishlistIds]);
+  useEffect(() => { localStorage.setItem('voyage:currency', currency); }, [currency]);
+  useEffect(() => { localStorage.setItem('voyage:notifications', JSON.stringify(notifSettings)); }, [notifSettings]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal })
+      .then((response) => { if (!response.ok) throw new Error('Rate request failed'); return response.json(); })
+      .then((data: { result?: string; rates?: Record<string, number>; time_last_update_utc?: string }) => {
+        if (data.result !== 'success' || !data.rates) throw new Error('Invalid rate response');
+        setExchangeRates(data.rates);
+        setExchangeRateUpdatedAt(data.time_last_update_utc ?? null);
+      })
+      .catch((error: unknown) => { if (error instanceof Error && error.name !== 'AbortError') setExchangeRates(null); });
+    return () => controller.abort();
+  }, []);
+  const formatPrice = (usdAmount: number) => {
+    const rate = currency === 'USD' ? 1 : exchangeRates?.[currency];
+    if (rate === undefined) return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(usdAmount);
+    return new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', { style: 'currency', currency, maximumFractionDigits: currency === 'IDR' ? 0 : 2 }).format(usdAmount * rate);
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -133,6 +135,8 @@ export default function App() {
     });
   };
 
+  useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
+
   const handleSwitchTab = (tab: AppTab) => {
     setActiveTab(tab);
     if (tab !== 'Explore') setSelectedDestination(null);
@@ -149,33 +153,44 @@ export default function App() {
 
   const openTourDetail = (tour: Tour) => {
     setSelectedTour(tour);
+    setSelectedTourDate(tour.availableDates[0] ?? '');
+    setSelectedItineraryDay(1);
+    setTourDetailSection('overview');
     setTourHeroImg(tour.image);
     setActiveTab('Tours');
   };
 
   const handleConfirmBooking = (tour: Tour) => {
+    if (!selectedTourDate || !tour.availableDates.includes(selectedTourDate)) {
+      showToast('Please select a valid departure date for this tour.');
+      return;
+    }
+    if (selectedTourGuests < 1 || !personalInfo.fullName.trim() || !personalInfo.email.trim()) {
+      showToast('Please complete your contact details and traveler count.');
+      return;
+    }
     const newBooking: Booking = {
       id: `bk-${Date.now()}`,
-      bookingCode: `VYG-${Math.floor(100000 + Math.random() * 900000)}`,
+      bookingCode: `VYG-${Date.now().toString().slice(-6)}`,
       tourTitle: tour.title,
       location: tour.location,
       image: tour.image,
       date: selectedTourDate,
       guestsCount: selectedTourGuests,
       totalPaid: tour.price * selectedTourGuests,
-      status: 'Confirmed',
-      paymentMethod: `Credit Card (${currency})`,
-      travelerName: personalInfo.fullName,
-      travelerEmail: personalInfo.email,
+      status: 'Pending',
+      paymentMethod: 'Awaiting payment setup',
+      travelerName: personalInfo.fullName.trim(),
+      travelerEmail: personalInfo.email.trim(),
       trackingSteps: [
-        { label: 'Booking Confirmed', time: 'Just now', done: true },
-        { label: 'Chauffeur Assigned', time: 'Pending', done: false },
-        { label: 'Hotel & Itinerary Finalized', time: 'Pending', done: false },
+        { label: 'Booking request received', time: 'Just now', done: true },
+        { label: 'Payment verification', time: 'Pending', done: false },
+        { label: 'Tour arrangements', time: 'Pending', done: false },
         { label: 'Ready for Departure', time: 'Pending', done: false }
       ]
     };
     setBookings(prev => [newBooking, ...prev]);
-    showToast('Booking confirmed successfully!');
+    showToast('Booking request created. Payment is not yet verified.');
     setSelectedTour(null);
     setActiveTab('Bookings');
   };
@@ -198,9 +213,11 @@ export default function App() {
         t.title.toLowerCase().includes(tourSearch.toLowerCase()) ||
         t.location.toLowerCase().includes(tourSearch.toLowerCase());
       const matchesCat = tourCategory === 'All' || t.category === tourCategory;
-      return matchesSearch && matchesCat;
+      const durationDays = Number(t.duration.match(/\d+/)?.[0] ?? 0);
+      const matchesDuration = durationDays > 0 && durationDays <= tourMaxDays;
+      return matchesSearch && matchesCat && matchesDuration;
     });
-  }, [tourSearch, tourCategory]);
+  }, [tourSearch, tourCategory, tourMaxDays]);
 
   const renderActivityIcon = (type: string) => {
     switch (type) {
@@ -361,7 +378,7 @@ export default function App() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                         <div className="absolute top-2.5 left-2.5 bg-[#FF5733] text-white text-[10px] font-normal px-2 py-0.5 rounded-md">
-                          ${dest.price}
+                          {formatPrice(dest.price)}
                         </div>
                         <div className="absolute bottom-3 left-3 right-3 text-white">
                           <div className="text-xs font-normal">{dest.city}</div>
@@ -408,7 +425,7 @@ export default function App() {
                           <div className="mt-1 flex items-center justify-between text-[11px]">
                             <span className="text-slate-400 font-normal">{tour.location}</span>
                             <span className="font-normal text-[#FF5733]">
-                              ${tour.price.toLocaleString()}
+                              {formatPrice(tour.price)}
                             </span>
                           </div>
                         </div>
@@ -625,7 +642,7 @@ export default function App() {
                     <div>
                       <div className="flex justify-between text-xs font-normal text-slate-700 mb-1">
                         <span>Max Budget</span>
-                        <span className="text-[#FF5733]">${exploreMaxPrice.toLocaleString()}</span>
+                        <span className="text-[#FF5733]">{formatPrice(exploreMaxPrice)}</span>
                       </div>
                       <input
                         type="range"
@@ -710,7 +727,7 @@ export default function App() {
                         <div
                           className={`absolute top-0 left-0 ${dest.badgeColor} text-white text-[11px] font-normal px-3 py-1.5 rounded-br-2xl`}
                         >
-                          ${dest.price.toLocaleString()}
+                          {formatPrice(dest.price)}
                         </div>
                         <button
                           onClick={(e) => {
@@ -791,7 +808,7 @@ export default function App() {
                     </div>
                     <div className="bg-[#FF5733] px-3.5 py-2 rounded-2xl text-right shadow-md">
                       <div className="text-sm font-normal">
-                        ${selectedDestination.price.toLocaleString()}
+                        {formatPrice(selectedDestination.price)}
                       </div>
                       <div className="text-[9px] text-white/85 font-normal">avg / person</div>
                     </div>
@@ -852,9 +869,7 @@ export default function App() {
                   </h2>
                   <div className="space-y-3">
                     {TOURS.filter(
-                      (t) =>
-                        t.destinationId === selectedDestination.id ||
-                        t.id === 'tour-bali-luxury'
+                      (t) => t.destinationId === selectedDestination.id
                     )
                       .slice(0, 2)
                       .map((tour) => (
@@ -877,7 +892,7 @@ export default function App() {
                                 {tour.duration}
                               </div>
                               <div className="text-xs font-normal text-[#FF5733] mt-0.5">
-                                ${tour.price.toLocaleString()}
+                                {formatPrice(tour.price)}
                               </div>
                             </div>
                           </div>
@@ -976,7 +991,7 @@ export default function App() {
                           {tour.category}
                         </span>
                         <span className="absolute top-3 right-3 bg-white/95 text-slate-900 text-xs font-normal px-3 py-1 rounded-full shadow-xs">
-                          ${tour.price.toLocaleString()}
+                          {formatPrice(tour.price)}
                         </span>
                       </div>
                       <div className="p-4">
@@ -1224,11 +1239,11 @@ export default function App() {
                       </div>
                       <div className="flex items-baseline gap-2">
                         <span className="text-xl font-normal text-slate-900">
-                          ${(selectedTour.price * selectedTourGuests).toLocaleString()}
+                          {formatPrice(selectedTour.price * selectedTourGuests)}
                         </span>
                         {selectedTour.originalPrice && (
                           <span className="text-xs text-slate-400 font-normal line-through">
-                            ${(selectedTour.originalPrice * selectedTourGuests).toLocaleString()}
+                            {formatPrice(selectedTour.originalPrice * selectedTourGuests)}
                           </span>
                         )}
                       </div>
@@ -1275,7 +1290,11 @@ export default function App() {
                           className={`text-[10px] font-normal px-2.5 py-0.5 rounded-full ${
                             bk.status === 'Confirmed'
                               ? 'bg-[#109E6B]/10 text-[#109E6B]'
-                              : 'bg-[#1294F2]/10 text-[#1294F2]'
+                              : bk.status === 'Pending'
+                                ? 'bg-[#1294F2]/10 text-[#1294F2]'
+                                : bk.status === 'Cancelled'
+                                  ? 'bg-slate-100 text-slate-600'
+                                  : 'bg-red-50 text-red-600'
                           }`}
                         >
                           {bk.status}
@@ -1296,7 +1315,7 @@ export default function App() {
                           <div className="mt-1.5 flex items-center justify-between text-[11px]">
                             <span className="font-normal text-slate-600">{bk.date}</span>
                             <span className="font-normal text-[#FF5733]">
-                              ${bk.totalPaid.toLocaleString()}
+                              {formatPrice(bk.totalPaid)}
                             </span>
                           </div>
                         </div>
@@ -1323,7 +1342,12 @@ export default function App() {
                   </button>
                   <span className="text-xs font-normal text-slate-800">Booking Details</span>
                   <button
-                    onClick={() => showToast(`E-Voucher ${selectedBooking.bookingCode} downloaded`)}
+                    onClick={() => {
+                      if (selectedBooking.status !== 'Confirmed') { showToast('E-Voucher is available after payment confirmation.'); return; }
+                      const voucher = new Blob([`Voyage E-Voucher\nBooking: ${selectedBooking.bookingCode}\nTour: ${selectedBooking.tourTitle}\nDate: ${selectedBooking.date}\nTravelers: ${selectedBooking.guestsCount}`], { type: 'text/plain;charset=utf-8' });
+                      const url = URL.createObjectURL(voucher);
+                      const link = document.createElement('a'); link.href = url; link.download = `voyage-${selectedBooking.bookingCode}.txt`; link.click(); URL.revokeObjectURL(url);
+                    }}
                     className="w-10 h-10 rounded-2xl bg-white shadow-xs flex items-center justify-center text-[#FF5733] cursor-pointer"
                   >
                     <QrCode className="w-5 h-5" />
@@ -1413,9 +1437,9 @@ export default function App() {
                       </span>
                     </div>
                     <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
-                      <span className="font-normal text-slate-700">Total Paid</span>
+                      <span className="font-normal text-slate-700">{selectedBooking.status === 'Confirmed' ? 'Total Paid' : 'Total Amount'}</span>
                       <span className="text-sm font-normal text-[#FF5733]">
-                        ${selectedBooking.totalPaid.toLocaleString()}
+                        {formatPrice(selectedBooking.totalPaid)}
                       </span>
                     </div>
                   </div>
@@ -1612,11 +1636,11 @@ export default function App() {
                                   {tr.name}
                                 </div>
                                 <div className="text-[11px] text-slate-400 font-normal">
-                                  {tr.relation} • Passport {tr.passport}
+                                  {tr.relation} • Passport ending {tr.passport.slice(-4).padStart(tr.passport.length, '•')}
                                 </div>
                               </div>
                               <span className="text-[10px] font-normal bg-[#109E6B]/10 text-[#109E6B] px-2.5 py-1 rounded-full">
-                                Verified
+                                In this session
                               </span>
                             </div>
                           ))}
@@ -1630,6 +1654,7 @@ export default function App() {
                             type="text"
                             value={newTravelerName}
                             onChange={(e) => setNewTravelerName(e.target.value)}
+                            aria-label="Traveler full name as shown on passport"
                             placeholder="Full Name (as on passport)"
                             className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-normal"
                           />
@@ -1637,25 +1662,29 @@ export default function App() {
                             type="text"
                             value={newTravelerPassport}
                             onChange={(e) => setNewTravelerPassport(e.target.value)}
+                            aria-label="Traveler passport number"
                             placeholder="Passport Number"
                             className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-normal"
                           />
                           <button
                             onClick={() => {
-                              if (!newTravelerName.trim()) return;
+                              if (!newTravelerName.trim() || !newTravelerPassport.trim()) {
+                                showToast('Enter the traveler name and passport number.');
+                                return;
+                              }
                               setSavedTravelers((prev) => [
                                 ...prev,
                                 {
                                   id: `tr-${Date.now()}`,
                                   name: newTravelerName.trim(),
                                   relation: 'Companion',
-                                  passport: newTravelerPassport.trim() || 'C9012834',
-                                  nationality: 'Indonesia',
+                                  passport: newTravelerPassport.trim(),
+                                  nationality: '',
                                 },
                               ]);
                               setNewTravelerName('');
                               setNewTravelerPassport('');
-                              showToast('Companion traveler added');
+                              showToast('Companion traveler added for this session.');
                             }}
                             className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-normal cursor-pointer"
                           >
@@ -1689,7 +1718,7 @@ export default function App() {
                                     {dest.city}, {dest.country}
                                   </div>
                                   <div className="text-[11px] font-normal text-[#FF5733] mt-0.5">
-                                    From ${dest.price.toLocaleString()}
+                                    From {formatPrice(dest.price)}
                                   </div>
                                 </div>
                               </div>
@@ -1774,13 +1803,13 @@ export default function App() {
                           </h4>
                           <div className="mt-2 flex gap-2">
                             <button
-                              onClick={() => showToast('Connecting to live concierge...')}
+                              onClick={() => showToast('Support phone number is not configured yet.')}
                               className="flex-1 py-2.5 rounded-xl bg-[#1294F2] text-white text-xs font-normal flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               <Phone className="w-3.5 h-3.5" /> Call Support
                             </button>
                             <button
-                              onClick={() => showToast('Support ticket opened via email')}
+                              onClick={() => showToast('Support email address is not configured yet.')}
                               className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-normal flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               <Mail className="w-3.5 h-3.5" /> Email Us
@@ -1814,6 +1843,9 @@ export default function App() {
                               </button>
                             ))}
                           </div>
+                          <p className="mt-2 text-[10px] text-slate-400" role="status">
+                            {currency !== 'USD' && !exchangeRates ? 'Exchange rate unavailable. Prices remain displayed in USD.' : exchangeRateUpdatedAt ? `Rates last updated: ${exchangeRateUpdatedAt}` : 'Loading exchange rates…'}
+                          </p>
                         </div>
                         <button
                           onClick={() => setShowOnboarding(true)}
