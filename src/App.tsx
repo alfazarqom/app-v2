@@ -32,9 +32,9 @@ import {
 } from 'lucide-react';
 import { mockCatalogRepository } from './data/catalogRepository';
 import { INITIAL_BOOKINGS, INITIAL_PROFILE, INITIAL_TRAVELERS } from './data/mockData';
+import type { Booking, CategoryType, Destination, Tour, Traveler } from './types';
 const DESTINATIONS = mockCatalogRepository.listDestinations();
 const TOURS = mockCatalogRepository.listTours();
-import type { Booking, CategoryType, Destination, Tour, Traveler } from './types';
 import { AppShell } from './app/AppShell';
 import { createPrototypeBookingRequest } from './features/booking/bookingService';
 import type { AppTab, ProfileSubView } from './app/routes';
@@ -71,16 +71,8 @@ export default function App() {
 
   // Profile State
   const [profileSubView, setProfileSubView] = useState<ProfileSubView>('overview');
-  const [personalInfo, setPersonalInfo] = useState({
-    fullName: 'Alex Morgan',
-    email: 'alex.morgan@example.com',
-    phone: '+1 (555) 382-9102',
-    city: 'Los Angeles, USA'
-  });
-  const [savedTravelers, setSavedTravelers] = useState<Traveler[]>([
-    { id: 'tr-1', name: 'Alex Morgan', relation: 'Self', nationality: 'USA' },
-    { id: 'tr-2', name: 'Taylor Swift', relation: 'Companion', nationality: 'USA' }
-  ]);
+  const [personalInfo, setPersonalInfo] = useState(INITIAL_PROFILE);
+  const [savedTravelers, setSavedTravelers] = useState<Traveler[]>(INITIAL_TRAVELERS);
   const [newTravelerName, setNewTravelerName] = useState('');
   const [newTravelerPassport, setNewTravelerPassport] = useState('');
   const [notifSettings, setNotifSettings] = useState({
