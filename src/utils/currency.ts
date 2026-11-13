@@ -63,3 +63,12 @@ export function formatCurrencyAmount(
     maximumFractionDigits: currency === 'IDR' ? 0 : 2,
   }).format(converted);
 }
+
+export function formatStoredCurrencyAmount(amount: number, currency: CurrencyCode): string {
+  const locale = currency === 'IDR' ? 'id-ID' : currency === 'EUR' ? 'de-DE' : 'en-US';
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: currency === 'IDR' ? 0 : 2,
+  }).format(amount);
+}
