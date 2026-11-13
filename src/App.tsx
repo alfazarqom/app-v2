@@ -83,10 +83,24 @@ export default function App() {
   });
   const [currency, setCurrency] = useState<'USD' | 'IDR' | 'EUR'>('USD');
 
-  // Toast Sysconst [personalInfo, setPersonalInfo] = useState(INITIAL_PROFILE);;
+  // Toast System
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<any>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => {
-    const [savedTravelers, setSavedTravelers] = useState<Traveler[]>(INITIAL_TRAVELERS);Removed ${name} from wishlist`);
+      setToastMessage(null);
+    }, 2800);
+  };
+
+  const toggleWishlist = (id: string, name: string) => {
+    setWishlistIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        showToast(`Removed ${name} from wishlist`);
       } else {
         next.add(id);
         showToast(`Added ${name} to wishlist!`);
