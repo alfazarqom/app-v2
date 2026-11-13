@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/f01-project-structure
+      - "feature/**"
   pull_request:
     branches:
       - main
@@ -17,8 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Install dependencies and build
+  quality:
+    name: Install, lint, and build
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -29,8 +29,21 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies
-        run: npm install
+      - name: Generate lockfile (bootstrap)
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Install dependencies reproducibly
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build application
         run: npm run build
+
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-lock-bootstrap
+          path: package-lock.json
+          if-no-files-found: error
