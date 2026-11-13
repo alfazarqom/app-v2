@@ -33,11 +33,12 @@ import {
 import { mockCatalogRepository } from './data/catalogRepository';
 import { INITIAL_BOOKINGS, INITIAL_PROFILE, INITIAL_TRAVELERS } from './data/mockData';
 import type { Booking, CategoryType, Destination, Tour, Traveler } from './types';
-const DESTINATIONS = mockCatalogRepository.listDestinations();
-const TOURS = mockCatalogRepository.listTours();
 import { AppShell } from './app/AppShell';
 import { createPrototypeBookingRequest } from './features/booking/bookingService';
 import type { AppTab, ProfileSubView } from './app/routes';
+
+const DESTINATIONS = mockCatalogRepository.listDestinations();
+const TOURS = mockCatalogRepository.listTours();
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('Home');
