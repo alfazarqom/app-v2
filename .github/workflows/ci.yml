@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/f01-project-structure
+      - "feature/**"
   pull_request:
     branches:
       - main
@@ -17,8 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Install dependencies and build
+  quality:
+    name: Install, lint, and build
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -28,9 +28,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build application
         run: npm run build
