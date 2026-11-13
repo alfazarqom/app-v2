@@ -31,6 +31,7 @@ import {
   Home
 } from 'lucide-react';
 import { mockCatalogRepository } from './data/catalogRepository';
+import { INITIAL_BOOKINGS, INITIAL_PROFILE, INITIAL_TRAVELERS } from './data/mockData';
 const DESTINATIONS = mockCatalogRepository.listDestinations();
 const TOURS = mockCatalogRepository.listTours();
 import type { Booking, CategoryType, Destination, Tour, Traveler } from './types';
@@ -65,30 +66,7 @@ export default function App() {
 
   // Wishlist & Bookings State
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set(['bali', 'santorini']));
-  const [bookings, setBookings] = useState<Booking[]>([
-    {
-      id: 'bk-1',
-      bookingCode: 'VYG-849201',
-      tourTitle: TOURS[0].title,
-      location: TOURS[0].location,
-      image: TOURS[0].image,
-      date: '16 Jun - 20 Jun',
-      guestsCount: 2,
-      totalAmount: 4200,
-      status: 'Confirmed',
-      paymentStatus: 'Paid',
-      paymentMethod: 'Credit Card (•••• 4921)',
-      source: 'prototype',
-      travelerName: 'Alex Morgan',
-      travelerEmail: 'alex.morgan@example.com',
-      trackingSteps: [
-        { label: 'Booking Confirmed', time: 'May 10, 10:24 AM', done: true },
-        { label: 'Chauffeur Assigned', time: 'May 12, 02:15 PM', done: true },
-        { label: 'Villa & Spa Reserved', time: 'May 14, 09:00 AM', done: true },
-        { label: 'Ready for Departure', time: 'Pending', done: false }
-      ]
-    }
-  ]);
+  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   // Profile State
@@ -112,24 +90,10 @@ export default function App() {
   });
   const [currency, setCurrency] = useState<'USD' | 'IDR' | 'EUR'>('USD');
 
-  // Toast System
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const toastTimerRef = useRef<any>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
+  // Toast Sysconst [personalInfo, setPersonalInfo] = useState(INITIAL_PROFILE);;
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => {
-      setToastMessage(null);
-    }, 2800);
-  };
-
-  const toggleWishlist = (id: string, name: string) => {
-    setWishlistIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        showToast(`Removed ${name} from wishlist`);
+    const [savedTravelers, setSavedTravelers] = useState<Traveler[]>(INITIAL_TRAVELERS);Removed ${name} from wishlist`);
       } else {
         next.add(id);
         showToast(`Added ${name} to wishlist!`);
