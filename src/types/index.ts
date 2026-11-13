@@ -1,0 +1,71 @@
+export type CategoryType = 'All' | 'Popular' | 'Beach' | 'Mountain' | 'Adventure';
+
+export interface Destination {
+  id: string;
+  city: string;
+  country: string;
+  category: CategoryType;
+  subtitle: string;
+  count: string;
+  price: number;
+  badgeColor: string;
+  rating: number;
+  reviewsCount: number;
+  temp: string;
+  duration: string;
+  dates: string;
+  tag: string;
+  image: string;
+  gallery: string[];
+  overview: string;
+  highlights: string[];
+  bestSeason: string;
+}
+
+export interface Tour {
+  id: string;
+  title: string;
+  destinationId: string;
+  category: string;
+  location: string;
+  price: number;
+  originalPrice?: number;
+  rating: number;
+  reviewsCount: number;
+  duration: string;
+  image: string;
+  gallery: string[];
+  overview: string;
+  highlights: string[];
+  inclusions: string[];
+  exclusions: string[];
+  availableDates: string[];
+  itinerary: {
+    day: number;
+    dateLabel: string;
+    activities: {
+      id: string;
+      title: string;
+      subtitle: string;
+      time: string;
+      color: string;
+      iconType: 'flight' | 'hotel' | 'dining' | 'shopping' | 'adventure';
+    }[];
+  }[];
+}
+
+export interface Booking {
+  id: string;
+  bookingCode: string;
+  tourTitle: string;
+  location: string;
+  image: string;
+  date: string;
+  guestsCount: number;
+  totalPaid: number;
+  status: 'Confirmed' | 'Pending';
+  paymentMethod: string;
+  travelerName: string;
+  travelerEmail: string;
+  trackingSteps: { label: string; time: string; done: boolean }[];
+}
