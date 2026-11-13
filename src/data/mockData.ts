@@ -11,6 +11,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     date: '16 Jun - 20 Jun',
     guestsCount: 2,
     totalAmount: 4200,
+    currency: 'USD',
+    baseAmountUsd: 4200,
     status: 'Confirmed',
     paymentStatus: 'Paid',
     paymentMethod: 'Credit Card (•••• 4921)',
