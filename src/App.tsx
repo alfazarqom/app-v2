@@ -165,8 +165,9 @@ export default function App() {
       showToast('Please select a valid departure date for this tour.');
       return;
     }
-    if (selectedTourGuests < 1 || !personalInfo.fullName.trim() || !personalInfo.email.trim()) {
-      showToast('Please complete your contact details and traveler count.');
+    const travelerEmail = personalInfo.email.trim();
+    if (selectedTourGuests < 1 || !personalInfo.fullName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(travelerEmail)) {
+      showToast('Enter a valid name and email address before requesting a booking.');
       return;
     }
     const newBooking: Booking = {
@@ -177,11 +178,11 @@ export default function App() {
       image: tour.image,
       date: selectedTourDate,
       guestsCount: selectedTourGuests,
-      totalPaid: tour.price * selectedTourGuests,
+      totalAmount: tour.price * selectedTourGuests,
       status: 'Pending',
       paymentMethod: 'Awaiting payment setup',
       travelerName: personalInfo.fullName.trim(),
-      travelerEmail: personalInfo.email.trim(),
+      travelerEmail,
       trackingSteps: [
         { label: 'Booking request received', time: 'Just now', done: true },
         { label: 'Payment verification', time: 'Pending', done: false },
@@ -1315,7 +1316,7 @@ export default function App() {
                           <div className="mt-1.5 flex items-center justify-between text-[11px]">
                             <span className="font-normal text-slate-600">{bk.date}</span>
                             <span className="font-normal text-[#FF5733]">
-                              {formatPrice(bk.totalPaid)}
+                              {formatPrice(bk.totalAmount)}
                             </span>
                           </div>
                         </div>
@@ -1439,7 +1440,7 @@ export default function App() {
                     <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
                       <span className="font-normal text-slate-700">{selectedBooking.status === 'Confirmed' ? 'Total Paid' : 'Total Amount'}</span>
                       <span className="text-sm font-normal text-[#FF5733]">
-                        {formatPrice(selectedBooking.totalPaid)}
+                        {formatPrice(selectedBooking.totalAmount)}
                       </span>
                     </div>
                   </div>
