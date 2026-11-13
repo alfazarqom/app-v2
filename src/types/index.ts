@@ -1,6 +1,6 @@
-type CategoryType = 'All' | 'Popular' | 'Beach' | 'Mountain' | 'Adventure';
+export type CategoryType = 'All' | 'Popular' | 'Beach' | 'Mountain' | 'Adventure';
 
-interface Destination {
+export interface Destination {
   id: string;
   city: string;
   country: string;
@@ -22,7 +22,7 @@ interface Destination {
   bestSeason: string;
 }
 
-interface Tour {
+export interface Tour {
   id: string;
   title: string;
   destinationId: string;
@@ -54,7 +54,7 @@ interface Tour {
   }[];
 }
 
-interface Booking {
+export interface Booking {
   id: string;
   bookingCode: string;
   tourTitle: string;
