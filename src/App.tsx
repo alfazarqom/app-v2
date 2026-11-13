@@ -30,8 +30,10 @@ import {
   QrCode,
   Home
 } from 'lucide-react';
-import { DESTINATIONS, TOURS } from './data/catalog';
-import type { Booking, CategoryType, Destination, Tour } from './types';
+import { mockCatalogRepository } from './data/catalogRepository';
+const DESTINATIONS = mockCatalogRepository.listDestinations();
+const TOURS = mockCatalogRepository.listTours();
+import type { Booking, CategoryType, Destination, Tour, Traveler } from './types';
 import { AppShell } from './app/AppShell';
 import { createPrototypeBookingRequest } from './features/booking/bookingService';
 import type { AppTab, ProfileSubView } from './app/routes';
@@ -97,9 +99,9 @@ export default function App() {
     phone: '+1 (555) 382-9102',
     city: 'Los Angeles, USA'
   });
-  const [savedTravelers, setSavedTravelers] = useState([
-    { id: 'tr-1', name: 'Alex Morgan', relation: 'Self', passport: 'A8923019', nationality: 'USA' },
-    { id: 'tr-2', name: 'Taylor Swift', relation: 'Companion', passport: 'B4920182', nationality: 'USA' }
+  const [savedTravelers, setSavedTravelers] = useState<Traveler[]>([
+    { id: 'tr-1', name: 'Alex Morgan', relation: 'Self', nationality: 'USA' },
+    { id: 'tr-2', name: 'Taylor Swift', relation: 'Companion', nationality: 'USA' }
   ]);
   const [newTravelerName, setNewTravelerName] = useState('');
   const [newTravelerPassport, setNewTravelerPassport] = useState('');
@@ -1603,7 +1605,7 @@ export default function App() {
                                   {tr.name}
                                 </div>
                                 <div className="text-[11px] text-slate-400 font-normal">
-                                  {tr.relation} • Passport {tr.passport}
+                                  {tr.relation} • {tr.passportNumber ? 'Passport provided' : 'Passport not provided'}
                                 </div>
                               </div>
                               <span className="text-[10px] font-normal bg-[#109E6B]/10 text-[#109E6B] px-2.5 py-1 rounded-full">
@@ -1640,7 +1642,7 @@ export default function App() {
                                   id: `tr-${Date.now()}`,
                                   name: newTravelerName.trim(),
                                   relation: 'Companion',
-                                  passport: newTravelerPassport.trim() || 'C9012834',
+                                  passportNumber: newTravelerPassport.trim() || undefined,
                                   nationality: 'Indonesia',
                                 },
                               ]);
