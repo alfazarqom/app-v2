@@ -62,7 +62,7 @@ export interface Booking {
   image: string;
   date: string;
   guestsCount: number;
-  totalPaid: number;
+  totalAmount: number;
   status: 'Confirmed' | 'Pending' | 'Failed' | 'Cancelled' | 'Expired';
   paymentMethod: string;
   travelerName: string;
