@@ -7,6 +7,7 @@ export interface PrototypeBookingRequestInput {
   travelerName: string;
   travelerEmail: string;
   currency: 'USD' | 'IDR' | 'EUR';
+  exchangeRate: number;
 }
 
 /**
@@ -20,6 +21,7 @@ export function createPrototypeBookingRequest({
   travelerName,
   travelerEmail,
   currency,
+  exchangeRate,
 }: PrototypeBookingRequestInput): Booking {
   return {
     id: `prototype-${Date.now()}`,
@@ -29,7 +31,9 @@ export function createPrototypeBookingRequest({
     image: tour.image,
     date,
     guestsCount,
-    totalAmount: tour.price * guestsCount,
+    totalAmount: tour.price * guestsCount * exchangeRate,
+    currency,
+    baseAmountUsd: tour.price * guestsCount,
     status: 'Pending',
     paymentStatus: 'Unpaid',
     paymentMethod: `Not processed (${currency})`,
