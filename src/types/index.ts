@@ -54,6 +54,9 @@ export interface Tour {
   }[];
 }
 
+export type BookingStatus = 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed';
+export type PaymentStatus = 'Unpaid' | 'Pending' | 'Paid' | 'Failed' | 'Refunded';
+
 export interface Booking {
   id: string;
   bookingCode: string;
@@ -62,10 +65,12 @@ export interface Booking {
   image: string;
   date: string;
   guestsCount: number;
-  totalPaid: number;
-  status: 'Confirmed' | 'Pending';
+  totalAmount: number;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
   paymentMethod: string;
   travelerName: string;
   travelerEmail: string;
+  source: 'prototype' | 'backend';
   trackingSteps: { label: string; time: string; done: boolean }[];
 }
