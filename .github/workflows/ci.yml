@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -33,14 +35,13 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts
 
       - name: Commit updated lockfile on branch push
-        if: github.event_name == 'push'
         run: |
           if [ -n "$(git status --porcelain package-lock.json)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add package-lock.json
             git commit -m "chore(f12): update test dependency lockfile"
-            git push
+            git push origin HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}
           fi
 
       - name: Install dependencies
