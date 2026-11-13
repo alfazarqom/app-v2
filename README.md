@@ -10,7 +10,7 @@ A React + TypeScript travel discovery and tour-booking interface.
 ## Setup
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -29,3 +29,13 @@ npm run preview
 - `index.html` — Vite HTML entry point.
 
 The current booking, traveler, destination, and tour data remain frontend prototype data. No backend or payment integration is configured by this project-structure change.
+
+
+## Quality checks
+
+```bash
+npm run lint
+npm run build
+```
+
+The repository commits `package-lock.json` so CI and local installs use the same dependency graph. GitHub Actions runs dependency installation, linting, and the production build for pushes and pull requests.
