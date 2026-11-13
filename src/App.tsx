@@ -1,5 +1,5 @@
 // ... existing code ...
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   Compass,
   MapPin,
@@ -32,10 +32,11 @@ import {
 } from 'lucide-react';
 import { mockCatalogRepository } from './data/catalogRepository';
 import { INITIAL_BOOKINGS, INITIAL_PROFILE, INITIAL_TRAVELERS } from './data/mockData';
-import type { Booking, CategoryType, Destination, Tour, Traveler } from './types';
+import type { Booking, CategoryType, CurrencyCode, Destination, Tour, Traveler } from './types';
 import { AppShell } from './app/AppShell';
 import { createPrototypeBookingRequest } from './features/booking/bookingService';
 import type { AppTab, ProfileSubView } from './app/routes';
+import { fetchLatestUsdRates, formatCurrencyAmount, formatStoredCurrencyAmount, type ExchangeRates } from './utils/currency';
 
 const DESTINATIONS = mockCatalogRepository.listDestinations();
 const TOURS = mockCatalogRepository.listTours();
@@ -81,7 +82,10 @@ export default function App() {
     priceDrops: true,
     itineraryReminders: false
   });
-  const [currency, setCurrency] = useState<'USD' | 'IDR' | 'EUR'>('USD');
+  const [currency, setCurrency] = useState<CurrencyCode>('USD');
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null);
+  const [isLoadingRates, setIsLoadingRates] = useState(true);
+  const [rateError, setRateError] = useState<string | null>(null);
 
   // Toast System
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -94,6 +98,38 @@ export default function App() {
       setToastMessage(null);
     }, 2800);
   };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsLoadingRates(true);
+    fetchLatestUsdRates(controller.signal)
+      .then((snapshot) => {
+        setExchangeRates(snapshot);
+        setRateError(null);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        setRateError(error instanceof Error ? error.message : 'Unable to load exchange rates');
+        setCurrency('USD');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingRates(false);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const formatPrice = (amount: number, code: CurrencyCode = currency) => {
+    if (code === 'USD') {
+      return formatCurrencyAmount(amount, 'USD', { USD: 1, IDR: 1, EUR: 1 });
+    }
+    if (!exchangeRates) return '—';
+    return formatCurrencyAmount(amount, code, exchangeRates.rates);
+  };
+
+  const formatBookingAmount = (amount: number, code: CurrencyCode) =>
+    formatStoredCurrencyAmount(amount, code);
+
 
   const toggleWishlist = (id: string, name: string) => {
     setWishlistIds(prev => {
@@ -137,6 +173,7 @@ export default function App() {
       travelerName: personalInfo.fullName,
       travelerEmail: personalInfo.email,
       currency,
+      exchangeRate: exchangeRates?.rates[currency] ?? 1,
     });
     setBookings(prev => [newBooking, ...prev]);
     showToast('Booking request created — prototype only; payment not processed.');
@@ -325,7 +362,7 @@ export default function App() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                         <div className="absolute top-2.5 left-2.5 bg-[#FF5733] text-white text-[10px] font-normal px-2 py-0.5 rounded-md">
-                          ${dest.price}
+                          {formatPrice(dest.price)}
                         </div>
                         <div className="absolute bottom-3 left-3 right-3 text-white">
                           <div className="text-xs font-normal">{dest.city}</div>
@@ -372,7 +409,7 @@ export default function App() {
                           <div className="mt-1 flex items-center justify-between text-[11px]">
                             <span className="text-slate-400 font-normal">{tour.location}</span>
                             <span className="font-normal text-[#FF5733]">
-                              ${tour.price.toLocaleString()}
+                              {formatPrice(tour.price)}
                             </span>
                           </div>
                         </div>
@@ -589,7 +626,7 @@ export default function App() {
                     <div>
                       <div className="flex justify-between text-xs font-normal text-slate-700 mb-1">
                         <span>Max Budget</span>
-                        <span className="text-[#FF5733]">${exploreMaxPrice.toLocaleString()}</span>
+                        <span className="text-[#FF5733]">{formatPrice(exploreMaxPrice)}</span>
                       </div>
                       <input
                         type="range"
@@ -674,7 +711,7 @@ export default function App() {
                         <div
                           className={`absolute top-0 left-0 ${dest.badgeColor} text-white text-[11px] font-normal px-3 py-1.5 rounded-br-2xl`}
                         >
-                          ${dest.price.toLocaleString()}
+                          {formatPrice(dest.price)}
                         </div>
                         <button
                           onClick={(e) => {
@@ -755,7 +792,7 @@ export default function App() {
                     </div>
                     <div className="bg-[#FF5733] px-3.5 py-2 rounded-2xl text-right shadow-md">
                       <div className="text-sm font-normal">
-                        ${selectedDestination.price.toLocaleString()}
+                        {formatPrice(selectedDestination.price)}
                       </div>
                       <div className="text-[9px] text-white/85 font-normal">avg / person</div>
                     </div>
@@ -841,7 +878,7 @@ export default function App() {
                                 {tour.duration}
                               </div>
                               <div className="text-xs font-normal text-[#FF5733] mt-0.5">
-                                ${tour.price.toLocaleString()}
+                                {formatPrice(tour.price)}
                               </div>
                             </div>
                           </div>
@@ -940,7 +977,7 @@ export default function App() {
                           {tour.category}
                         </span>
                         <span className="absolute top-3 right-3 bg-white/95 text-slate-900 text-xs font-normal px-3 py-1 rounded-full shadow-xs">
-                          ${tour.price.toLocaleString()}
+                          {formatPrice(tour.price)}
                         </span>
                       </div>
                       <div className="p-4">
@@ -1188,11 +1225,11 @@ export default function App() {
                       </div>
                       <div className="flex items-baseline gap-2">
                         <span className="text-xl font-normal text-slate-900">
-                          ${(selectedTour.price * selectedTourGuests).toLocaleString()}
+                          {formatPrice(selectedTour.price * selectedTourGuests)}
                         </span>
                         {selectedTour.originalPrice && (
                           <span className="text-xs text-slate-400 font-normal line-through">
-                            ${(selectedTour.originalPrice * selectedTourGuests).toLocaleString()}
+                            {formatPrice(selectedTour.originalPrice * selectedTourGuests)}
                           </span>
                         )}
                       </div>
@@ -1260,7 +1297,7 @@ export default function App() {
                           <div className="mt-1.5 flex items-center justify-between text-[11px]">
                             <span className="font-normal text-slate-600">{bk.date}</span>
                             <span className="font-normal text-[#FF5733]">
-                              ${bk.totalAmount.toLocaleString()}
+                              {formatBookingAmount(bk.totalAmount, bk.currency)}
                             </span>
                           </div>
                         </div>
@@ -1379,7 +1416,7 @@ export default function App() {
                     <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
                       <span className="font-normal text-slate-700">{selectedBooking.paymentStatus === 'Paid' ? 'Total Paid' : 'Total Amount'}</span>
                       <span className="text-sm font-normal text-[#FF5733]">
-                        ${selectedBooking.totalAmount.toLocaleString()}
+                        {formatBookingAmount(selectedBooking.totalAmount, selectedBooking.currency)}
                       </span>
                     </div>
                   </div>
@@ -1653,7 +1690,7 @@ export default function App() {
                                     {dest.city}, {dest.country}
                                   </div>
                                   <div className="text-[11px] font-normal text-[#FF5733] mt-0.5">
-                                    From ${dest.price.toLocaleString()}
+                                    From {formatPrice(dest.price)}
                                   </div>
                                 </div>
                               </div>
@@ -1761,14 +1798,15 @@ export default function App() {
                             Display Currency
                           </div>
                           <div className="grid grid-cols-3 gap-2">
-                            {(['USD', 'IDR', 'EUR'] as const).map((curr) => (
+                            {(['USD', 'IDR', 'EUR'] as CurrencyCode[]).map((curr) => (
                               <button
                                 key={curr}
+                                disabled={curr !== 'USD' && (!exchangeRates || isLoadingRates)}
                                 onClick={() => {
                                   setCurrency(curr);
-                                  showToast(`Currency set to ${curr}`);
+                                  showToast(`Display currency set to ${curr}`);
                                 }}
-                                className={`py-2 rounded-xl text-xs font-normal border cursor-pointer ${
+                                className={`py-2 rounded-xl text-xs font-normal border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                                   currency === curr
                                     ? 'border-[#FF5733] bg-[#FF5733]/10 text-[#FF5733]'
                                     : 'border-slate-200 text-slate-600'
@@ -1778,6 +1816,13 @@ export default function App() {
                               </button>
                             ))}
                           </div>
+                          <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
+                            {isLoadingRates
+                              ? 'Loading reference exchange rates…'
+                              : exchangeRates
+                                ? `USD reference rates · updated ${exchangeRates.date} · Frankfurter`
+                                : `Exchange rates unavailable. Showing USD only. ${rateError ?? ''}`}
+                          </p>
                         </div>
                         <button
                           onClick={() => setShowOnboarding(true)}
