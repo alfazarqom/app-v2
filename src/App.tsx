@@ -1558,7 +1558,11 @@ export default function App() {
                           className={`text-[10px] font-normal px-2.5 py-0.5 rounded-full ${
                             bk.status === 'Confirmed'
                               ? 'bg-[#109E6B]/10 text-[#109E6B]'
-                              : 'bg-[#1294F2]/10 text-[#1294F2]'
+                              : bk.status === 'Pending'
+                                ? 'bg-[#1294F2]/10 text-[#1294F2]'
+                                : bk.status === 'Cancelled'
+                                  ? 'bg-slate-100 text-slate-600'
+                                  : 'bg-red-50 text-red-600'
                           }`}
                         >
                           {bk.status}
@@ -1943,7 +1947,7 @@ export default function App() {
                                   name: newTravelerName.trim(),
                                   relation: 'Companion',
                                   passport: newTravelerPassport.trim(),
-                                  nationality: 'Indonesia',
+                                  nationality: '',
                                 },
                               ]);
                               setNewTravelerName('');
